@@ -1,0 +1,29 @@
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 20px;
+}
+
+.kpi-grid {
+    display: flex;
+    gap: 20px;
+}
+
+.kpi {
+    background: #f5f7fa;
+    padding: 20px;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.profit {
+    background: #e6ffe6;
+}
+
+.chart-box {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+}
