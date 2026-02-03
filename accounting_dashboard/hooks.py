@@ -6,7 +6,7 @@ app_email = "sai@aitsind.com"
 app_license = "mit"
 
 
-app_include_css = "/assets/accounting_dashboard/css/dashboard.css"
+app_include_css = "/assets/accounting_dashboard/css/dashboard4.css"
 
 # Apps
 # ------------------

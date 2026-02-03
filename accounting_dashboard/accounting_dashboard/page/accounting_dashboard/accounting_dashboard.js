@@ -1,174 +1,100 @@
 frappe.pages['accounting-dashboard'].on_page_load = function(wrapper) {
 
-    let page = frappe.ui.make_app_page({
+    const page = frappe.ui.make_app_page({
         parent: wrapper,
         title: 'Accounting Dashboard',
         single_column: true
     });
 
-    page.add_field({ label: "From Date", fieldname: "from_date", fieldtype: "Date" });
-    page.add_field({ label: "To Date", fieldname: "to_date", fieldtype: "Date" });
-    page.add_field({ label: "Company", fieldname: "company", fieldtype: "Link", options: "Company" });
+    page.add_field({
+        label: "Company",
+        fieldname: "company",
+        fieldtype: "Link",
+        options: "Company"
+    });
 
-    page.set_primary_action("Refresh", () => load_dashboard());
-    page.add_action_item("Export Excel", () => frappe.msgprint("Excel export coming soon"));
+    page.set_primary_action("Refresh", () => load_dashboard(page));
 
-    $(wrapper).find('.layout-main-section').html(`
-        <div class="dashboard-grid">
+    const html = $(`
+        <div class="dashboard">
 
-            <div id="kpi"></div>
+            <h3>Sales</h3>
+            <div class="chart-row">
+                <div id="sales_month"></div>
+                <div id="sales_quarter"></div>
+                <div id="sales_year"></div>
+            </div>
 
-            <div class="chart-box"><h4>Pending Sales</h4><div id="pending_chart"></div></div>
+            <h3>Purchase</h3>
+            <div class="chart-row">
+                <div id="pur_month"></div>
+                <div id="pur_quarter"></div>
+                <div id="pur_year"></div>
+            </div>
 
-            <div class="chart-box"><h4>Stock</h4><div id="stock_chart"></div></div>
+            <h3>Pending Sales Orders</h3>
+            <div id="pending_chart"></div>
 
-            <div class="chart-box"><h4>Top vs Bottom Stock</h4><div id="pie_chart"></div></div>
-
-            <div class="chart-box"><h4>Sales Trend</h4><div id="trend_chart"></div></div>
-
-            <div class="chart-box"><h4>Customer Contribution</h4><div id="customer_chart"></div></div>
-
-            <div class="chart-box"><h4>Product Profitability</h4><div id="profit_chart"></div></div>
-
-            <div class="chart-box"><h4>Aging Dashboard</h4><div id="aging_chart"></div></div>
-
-            <div class="chart-box"><h4>Stock Health</h4><div id="health_chart"></div></div>
+            <h3>Stock Overview</h3>
+            <div id="stock_chart"></div>
 
         </div>
     `);
 
-    load_dashboard();
-    setInterval(load_dashboard, 60000);
+    page.main.addClass("container-fluid");
+    page.main.append(html);
+
+    load_dashboard(page);
 };
 
 
-function load_dashboard() {
+function load_dashboard(page) {
 
-    let filters = frappe.pages['accounting-dashboard'].page.fields_dict;
+    let f = page.fields_dict;
 
     frappe.call({
         method: "accounting_dashboard.accounting_dashboard.page.accounting_dashboard.accounting_dashboard.get_dashboard_data",
         args: {
-            from_date: filters.from_date.get_value(),
-            to_date: filters.to_date.get_value(),
-            company: filters.company.get_value()
+            company: f.company.get_value()
         },
         callback: function(r) {
 
             let d = r.message;
 
-            render_kpi(d.kpi);
+            draw_pie("sales_month", d.sales_month, "Sales Invoice");
+            draw_pie("sales_quarter", d.sales_quarter, "Sales Invoice");
+            draw_pie("sales_year", d.sales_year, "Sales Invoice");
 
-            render_chart("#pending_chart", d.pending, "bar", true);
-            render_chart("#stock_chart", d.stock, "bar", true);
-            render_pie(d.pie);
-            render_chart("#trend_chart", d.trend, "line");
+            draw_pie("pur_month", d.pur_month, "Purchase Invoice");
+            draw_pie("pur_quarter", d.pur_quarter, "Purchase Invoice");
+            draw_pie("pur_year", d.pur_year, "Purchase Invoice");
 
-            render_customer(d.customer);
-            render_profit(d.profitability);
-            render_aging(d.aging);
-            render_health(d.stock_health);
+            draw_bar("pending_chart", d.pending);
+            draw_bar("stock_chart", d.stock);
         }
     });
 }
 
 
-// ================= KPI =================
-function render_kpi(kpi) {
+function draw_pie(id, data, doctype) {
 
-    $("#kpi").html(`
-        <div class="kpi-grid">
-            <div class="kpi">Sales<br>₹${kpi.sales.toLocaleString()}</div>
-            <div class="kpi">Purchase<br>₹${kpi.purchase.toLocaleString()}</div>
-            <div class="kpi profit">Profit<br>₹${kpi.profit.toLocaleString()}</div>
-            <div class="kpi">Margin<br>${kpi.margin.toFixed(2)}%</div>
-        </div>
-    `);
-}
-
-
-// ================= Generic Chart =================
-function render_chart(id, data, type, drill=false) {
-
-    let chart = new frappe.Chart(id, {
-        data: { labels: data.labels, datasets: [{ values: data.values }] },
-        type: type,
-        height: 300,
-        animate: 1
-    });
-
-    if (drill) {
-        chart.parent.addEventListener("click", () => {
-            frappe.set_route("query-report", "Stock Balance");
-        });
-    }
-}
-
-
-// ================= Pie Top/Bottom =================
-function render_pie(data) {
-
-    new frappe.Chart("#pie_chart", {
-        data: {
-            labels: ["Top 100", "Bottom 100"],
-            datasets: [{ values: [data.top, data.bottom] }]
-        },
-        type: "pie",
-        height: 300,
-        animate: 1
-    });
-}
-
-
-// ================= Customer Pie =================
-function render_customer(data) {
-
-    new frappe.Chart("#customer_chart", {
+    let chart = new frappe.Chart(`#${id}`, {
         data: { labels: data.labels, datasets: [{ values: data.values }] },
         type: "pie",
-        height: 300,
-        animate: 1
+        height: 220
+    });
+
+    chart.parent.addEventListener("click", () => {
+        frappe.set_route("List", doctype);
     });
 }
 
 
-// ================= Profitability =================
-function render_profit(data) {
+function draw_bar(id, data) {
 
-    new frappe.Chart("#profit_chart", {
+    new frappe.Chart(`#${id}`, {
         data: { labels: data.labels, datasets: [{ values: data.values }] },
         type: "bar",
-        height: 300,
-        animate: 1
-    });
-}
-
-
-// ================= Aging =================
-function render_aging(data) {
-
-    new frappe.Chart("#aging_chart", {
-        data: {
-            labels: Object.keys(data),
-            datasets: [{ values: Object.values(data) }]
-        },
-        type: "bar",
-        height: 300,
-        animate: 1
-    });
-}
-
-
-// ================= Stock Health =================
-function render_health(data) {
-
-    new frappe.Chart("#health_chart", {
-        data: {
-            labels: ["Fast Moving", "Dead Stock"],
-            datasets: [{ values: [data.fast, data.dead] }]
-        },
-        type: "pie",
-        height: 300,
-        animate: 1
+        height: 300
     });
 }
