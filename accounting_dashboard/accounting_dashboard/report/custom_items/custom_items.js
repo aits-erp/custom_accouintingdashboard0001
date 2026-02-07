@@ -1,19 +1,45 @@
-frappe.query_reports["Custom Items"] = {
-    tree: true,
-    initial_depth: 3,
-
+frappe.query_reports["Purchase Roll Report"] = {
     filters: [
         {
-            fieldname: "warehouse",
-            label: "Warehouse",
+            fieldname: "item_code",
+            label: "Item Code",
             fieldtype: "Link",
-            options: "Warehouse"
+            options: "Item"
         },
         {
-            fieldname: "item_group",
-            label: "Item Group",
-            fieldtype: "Link",
-            options: "Item Group"
+            fieldname: "roll_no",
+            label: "Roll No",
+            fieldtype: "Data"
+        },
+        {
+            fieldname: "rack",
+            label: "Rack",
+            fieldtype: "Data"
+        },
+        {
+            fieldname: "colour_code",
+            label: "Colour Code",
+            fieldtype: "Data"
+        },
+        {
+            fieldname: "from_date",
+            label: "From Date",
+            fieldtype: "Date"
+        },
+        {
+            fieldname: "to_date",
+            label: "To Date",
+            fieldtype: "Date"
         }
-    ]
+    ],
+
+    formatter: function(value, row, column, data, default_formatter) {
+        value = default_formatter(value, row, column, data);
+
+        if (data && data.item_code === "GRAND TOTAL") {
+            value = `<b style="color:green">${value}</b>`;
+        }
+
+        return value;
+    }
 };

@@ -1,127 +1,154 @@
 import frappe
-from collections import defaultdict
+from frappe.utils import flt
 
 
 def execute(filters=None):
-    columns = get_columns()
-    data, chart = get_data(filters)
-    return columns, data, None, chart
+    if not filters:
+        filters = {}
 
+    columns = get_columns()
+    data = get_data(filters)
+
+    total_qty = 0
+    total_consume_qty = 0
+    total_balance_qty = 0
+
+    total_rolls = 0
+    total_consume_rolls = 0
+    total_balance_rolls = 0
+
+    total_length = 0
+    total_width = 0
+    total_weight = 0
+
+    for row in data:
+
+        row["balance_qty"] = flt(row.get("qty")) - flt(row.get("consume_qty"))
+        row["balance_rolls"] = flt(row.get("custom_rolls")) - flt(row.get("consume_rolls"))
+
+        total_qty += flt(row.get("qty"))
+        total_consume_qty += flt(row.get("consume_qty"))
+        total_balance_qty += flt(row.get("balance_qty"))
+
+        total_rolls += flt(row.get("custom_rolls"))
+        total_consume_rolls += flt(row.get("consume_rolls"))
+        total_balance_rolls += flt(row.get("balance_rolls"))
+
+        total_length += flt(row.get("custom_net_length"))
+        total_width += flt(row.get("custom_width"))
+        total_weight += flt(row.get("custom_weight_gsm"))
+
+    total_row = {
+        "item_code": "GRAND TOTAL",
+        "qty": total_qty,
+        "consume_qty": total_consume_qty,
+        "balance_qty": total_balance_qty,
+        "custom_rolls": total_rolls,
+        "consume_rolls": total_consume_rolls,
+        "balance_rolls": total_balance_rolls,
+        "custom_net_length": total_length,
+        "custom_width": total_width,
+        "custom_weight_gsm": total_weight,
+    }
+
+    data.append(total_row)
+
+    return columns, data
+
+
+# --------------------------------------------------
 
 def get_columns():
     return [
-        {"label": "Parameter", "fieldname": "parameter", "fieldtype": "Data", "width": 320},
-        {"label": "Qty", "fieldname": "qty", "fieldtype": "Float", "width": 120},
-        {"label": "Item Code", "fieldname": "item_code", "fieldtype": "Link", "options": "Item", "width": 200},
-        {"label": "Warehouse", "fieldname": "warehouse", "fieldtype": "Link", "options": "Warehouse", "width": 200},
+        {"label": "Item Code", "fieldname": "item_code", "fieldtype": "Link", "options": "Item", "width": 150},
+        {"label": "Roll No", "fieldname": "custom_roll_no", "fieldtype": "Data", "width": 120},
+
+        {"label": "Quantity SQM", "fieldname": "qty", "fieldtype": "Float", "width": 130},
+        {"label": "Consume SQM", "fieldname": "consume_qty", "fieldtype": "Float", "width": 130},
+        {"label": "Balance SQM", "fieldname": "balance_qty", "fieldtype": "Float", "width": 130},
+
+        {"label": "Rack", "fieldname": "custom_rack", "fieldtype": "Data", "width": 120},
+        {"label": "Colour Code", "fieldname": "custom_colour_code", "fieldtype": "Data", "width": 120},
+        {"label": "Weight GSM", "fieldname": "custom_weight_gsm", "fieldtype": "Float", "width": 120},
+        {"label": "Width", "fieldname": "custom_width", "fieldtype": "Float", "width": 120},
+        {"label": "Net Length", "fieldname": "custom_net_length", "fieldtype": "Float", "width": 120},
+
+        {"label": "Rolls", "fieldname": "custom_rolls", "fieldtype": "Float", "width": 100},
+        {"label": "Consume Rolls", "fieldname": "consume_rolls", "fieldtype": "Float", "width": 130},
+        {"label": "Balance Rolls", "fieldname": "balance_rolls", "fieldtype": "Float", "width": 130},
     ]
 
 
+# --------------------------------------------------
+
+def get_conditions(filters):
+    conditions = ""
+
+    if filters.get("item_code"):
+        conditions += " AND pri.item_code = %(item_code)s"
+
+    if filters.get("roll_no"):
+        conditions += " AND pri.custom_roll_no LIKE %(roll_no)s"
+
+    if filters.get("rack"):
+        conditions += " AND pri.custom_rack LIKE %(rack)s"
+
+    if filters.get("colour_code"):
+        conditions += " AND pri.custom_colour_code LIKE %(colour_code)s"
+
+    if filters.get("from_date"):
+        conditions += " AND pr.posting_date >= %(from_date)s"
+
+    if filters.get("to_date"):
+        conditions += " AND pr.posting_date <= %(to_date)s"
+
+    return conditions
+
+
+# --------------------------------------------------
+
 def get_data(filters):
 
-    conditions = ""
-    if filters.get("warehouse"):
-        conditions += " AND b.warehouse = %(warehouse)s"
+    if filters.get("roll_no"):
+        filters["roll_no"] = f"%{filters['roll_no']}%"
 
-    if filters.get("item_group"):
-        conditions += " AND i.item_group = %(item_group)s"
+    if filters.get("rack"):
+        filters["rack"] = f"%{filters['rack']}%"
 
-    items = frappe.db.sql(f"""
+    if filters.get("colour_code"):
+        filters["colour_code"] = f"%{filters['colour_code']}%"
+
+    conditions = get_conditions(filters)
+
+    query = f"""
         SELECT
-            i.item_code,
-            i.item_group,
-            i.custom_width,
-            i.custom_weight,
-            i.custom_length,
-            b.warehouse,
-            SUM(b.actual_qty) as qty
-        FROM `tabItem` i
-        LEFT JOIN `tabBin` b ON i.item_code = b.item_code
-        WHERE i.disabled = 0 {conditions}
-        GROUP BY i.item_code, b.warehouse
-        ORDER BY i.item_group, i.custom_width, i.custom_weight, i.custom_length
-    """, filters, as_dict=True)
+            pri.item_code,
+            pri.custom_roll_no,
+            pri.qty,
+            pri.custom_rack,
+            pri.custom_colour_code,
+            pri.custom_weight_gsm,
+            pri.custom_width,
+            pri.custom_net_length,
+            pri.custom_rolls,
 
-    tree = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(list))))
-    chart_data = defaultdict(float)
+            IFNULL(SUM(dni.qty), 0) as consume_qty,
+            IFNULL(SUM(dni.custom_rolls), 0) as consume_rolls
 
-    for i in items:
-        tree[i.item_group][i.custom_width][i.custom_weight][i.custom_length].append(i)
-        chart_data[i.item_group] += i.qty or 0
+        FROM `tabPurchase Receipt Item` pri
+        INNER JOIN `tabPurchase Receipt` pr
+            ON pr.name = pri.parent
 
-    data = []
+        LEFT JOIN `tabDelivery Note Item` dni
+            ON dni.item_code = pri.item_code
+            AND dni.custom_roll_no = pri.custom_roll_no
+            AND dni.docstatus = 1
 
-    for group, widths in tree.items():
-        group_total = 0
+        WHERE pr.docstatus = 1
+        {conditions}
 
-        for w in widths.values():
-            for we in w.values():
-                for l in we.values():
-                    for item in l:
-                        group_total += item.qty or 0
+        GROUP BY pri.name
+        ORDER BY pr.posting_date DESC
+    """
 
-        data.append({
-            "parameter": group,
-            "qty": group_total,
-            "indent": 0
-        })
-
-        for width, weights in widths.items():
-            width_total = 0
-
-            for we in weights.values():
-                for l in we.values():
-                    for item in l:
-                        width_total += item.qty or 0
-
-            data.append({
-                "parameter": f"Width: {width}",
-                "qty": width_total,
-                "indent": 1
-            })
-
-            for weight, lengths in weights.items():
-                weight_total = 0
-
-                for l in lengths.values():
-                    for item in l:
-                        weight_total += item.qty or 0
-
-                data.append({
-                    "parameter": f"Weight: {weight}",
-                    "qty": weight_total,
-                    "indent": 2
-                })
-
-                for length, items_list in lengths.items():
-                    length_total = sum(i.qty or 0 for i in items_list)
-
-                    data.append({
-                        "parameter": f"Length: {length}",
-                        "qty": length_total,
-                        "indent": 3
-                    })
-
-                    for i in items_list:
-                        data.append({
-                            "parameter": "",
-                            "item_code": i.item_code,
-                            "warehouse": i.warehouse,
-                            "qty": i.qty,
-                            "indent": 4
-                        })
-
-    chart = {
-        "data": {
-            "labels": list(chart_data.keys()),
-            "datasets": [
-                {
-                    "name": "Stock Qty",
-                    "values": list(chart_data.values())
-                }
-            ]
-        },
-        "type": "bar"
-    }
-
-    return data, chart
+    return frappe.db.sql(query, filters, as_dict=1)
