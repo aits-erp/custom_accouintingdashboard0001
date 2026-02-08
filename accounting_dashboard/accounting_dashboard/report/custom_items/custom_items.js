@@ -1,4 +1,4 @@
-frappe.query_reports["Purchase Roll Report"] = {
+frappe.query_reports["custom items"] = {
     filters: [
         {
             fieldname: "item_code",
@@ -20,6 +20,21 @@ frappe.query_reports["Purchase Roll Report"] = {
             fieldname: "colour_code",
             label: "Colour Code",
             fieldtype: "Data"
+        },
+        {
+            fieldname: "weight_gsm",
+            label: "Weight GSM",
+            fieldtype: "Float"
+        },
+        {
+            fieldname: "width",
+            label: "Width",
+            fieldtype: "Float"
+        },
+        {
+            fieldname: "net_length",
+            label: "Net Length",
+            fieldtype: "Float"
         },
         {
             fieldname: "from_date",

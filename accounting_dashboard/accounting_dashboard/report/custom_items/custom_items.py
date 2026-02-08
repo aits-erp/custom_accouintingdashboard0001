@@ -88,13 +88,25 @@ def get_conditions(filters):
         conditions += " AND pri.item_code = %(item_code)s"
 
     if filters.get("roll_no"):
+        filters["roll_no"] = f"%{filters['roll_no']}%"
         conditions += " AND pri.custom_roll_no LIKE %(roll_no)s"
 
     if filters.get("rack"):
+        filters["rack"] = f"%{filters['rack']}%"
         conditions += " AND pri.custom_rack LIKE %(rack)s"
 
     if filters.get("colour_code"):
+        filters["colour_code"] = f"%{filters['colour_code']}%"
         conditions += " AND pri.custom_colour_code LIKE %(colour_code)s"
+
+    if filters.get("weight_gsm"):
+        conditions += " AND pri.custom_weight_gsm = %(weight_gsm)s"
+
+    if filters.get("width"):
+        conditions += " AND pri.custom_width = %(width)s"
+
+    if filters.get("net_length"):
+        conditions += " AND pri.custom_net_length = %(net_length)s"
 
     if filters.get("from_date"):
         conditions += " AND pr.posting_date >= %(from_date)s"
@@ -108,15 +120,6 @@ def get_conditions(filters):
 # --------------------------------------------------
 
 def get_data(filters):
-
-    if filters.get("roll_no"):
-        filters["roll_no"] = f"%{filters['roll_no']}%"
-
-    if filters.get("rack"):
-        filters["rack"] = f"%{filters['rack']}%"
-
-    if filters.get("colour_code"):
-        filters["colour_code"] = f"%{filters['colour_code']}%"
 
     conditions = get_conditions(filters)
 
