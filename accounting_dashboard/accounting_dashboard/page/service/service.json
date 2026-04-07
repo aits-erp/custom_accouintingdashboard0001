@@ -1,0 +1,22 @@
+{
+ "content": null,
+ "creation": "2026-02-24 22:34:42.951660",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2026-02-24 22:34:42.951660",
+ "modified_by": "Administrator",
+ "module": "Accounting Dashboard",
+ "name": "service",
+ "owner": "Administrator",
+ "page_name": "service",
+ "roles": [
+  {
+   "role": "Dashboard Manager"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0
+}

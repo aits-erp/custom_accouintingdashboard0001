@@ -1,0 +1,12 @@
+.chart-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.chart-row > div {
+    flex: 1;
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+}

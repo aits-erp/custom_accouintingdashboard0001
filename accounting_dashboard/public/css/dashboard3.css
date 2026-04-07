@@ -1,0 +1,25 @@
+.chart-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+.chart-row > div {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    height: 300px;
+}
+
+.kpi-grid {
+    display: flex;
+    gap: 20px;
+}
+
+.kpi {
+    background: #f5f7fa;
+    padding: 20px;
+    border-radius: 10px;
+    font-weight: bold;
+}

@@ -1,0 +1,18 @@
+.chart-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+    margin-bottom: 50px;
+    align-items: center;
+}
+
+.chart-row > div {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    height: 320px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
