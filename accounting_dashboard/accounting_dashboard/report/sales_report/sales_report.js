@@ -2,7 +2,7 @@
 // For license information, please see license.txt
 
 
-frappe.query_reports["Sales Reporting"] = {
+frappe.query_reports["Sales Report"] = {
     "filters": [
         {
             "fieldname": "from_date",
